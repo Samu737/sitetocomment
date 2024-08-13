@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real Site</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .container { max-width: 800px; margin: auto; padding: 20px; }
+        h1 { color: #333; }
+        .comments { margin-top: 20px; }
+        .comment { margin-bottom: 10px; padding: 10px; border: 1px solid #ddd; }
+        .message { color: red; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome to the Real Site</h1>
+        <p>This page requires authentication to post comments.</p>
+        <div id="login-section">
+            <h2>Login to Comment</h2>
+            <form id="login-form">
+                <input type="text" id="login-username" placeholder="Username" required>
+                <input type="password" id="login-password" placeholder="Password" required>
+                <button type="submit">Login</button>
+                <p class="message" id="login-message"></p>
+            </form>
+        </div>
+
+        <div id="comment-section" style="display:none;">
+            <h2>Post a Comment</h2>
+            <form id="comment-form">
+                <textarea id="comment-text" placeholder="Your comment..." rows="4" required></textarea>
+                <button type="submit">Post Comment</button>
+                <p class="message" id="comment-message"></p>
+            </form>
+
+            <h2>Comments</h2>
+            <div id="comments-list"></div>
+        </div>
+
+        <a href="/">Back to Home</a>
+    </div>
+
+    <script>
+        let currentUser = null;
+
+        // Handle login
+        document.getElementById('login-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const username = document.getElementById('login-username').value;
+            const password = document.getElementById('login-password').value;
+
+            fetch('/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('login-message').textContent = data.message;
+                if (data.message === 'Login successful') {
+                    currentUser = username;
+                    document.getElementById('login-section').style.display = 'none';
+                    document.getElementById('comment-section').style.display = 'block';
+                    loadComments();
+                }
+            })
+            .catch(error => {
+                document.getElementById('login-message').textContent = 'Error: ' + error.message;
+            });
+        });
+
+        // Handle comment submission
+        document.getElementById('comment-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const commentText = document.getElementById('comment-text').value;
+
+            fetch('/comment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: currentUser, text: commentText })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('comment-message').textContent = data.message;
+                if (data.message === 'Comment posted successfully') {
+                    document.getElementById('comment-text').value = '';
+                    loadComments();
+                }
+            })
+            .catch(error => {
+                document.getElementById('comment-message').textContent = 'Error: ' + error.message;
+            });
+        });
+
+        // Load comments
+        function loadComments() {
+            fetch('/comments')
+            .then(response => response.json())
+            .then(data => {
+                const commentsList = document.getElementById('comments-list');
+                commentsList.innerHTML = '';
+                data.comments.forEach(comment => {
+                    const div = document.createElement('div');
+                    div.className = 'comment';
+                    div.textContent = `${comment.username}: ${comment.text}`;
+                    commentsList.appendChild(div);
+                });
+            })
+            .catch(error => {
+                document.getElementById('comments-list').innerHTML = 'Error loading comments: ' + error.message;
+            });
+        }
+    </script>
+</body>
+</html>
